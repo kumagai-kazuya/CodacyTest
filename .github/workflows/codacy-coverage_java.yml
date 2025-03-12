@@ -25,10 +25,10 @@ jobs:
           java-version:  17 
           distribution:  temurin 
 
-      # 3. Codacy Analysis CLIのダウンロード
+      # 3. Codacy Analysis CLIをダウンロード (バージョン 7.0.0 を例として指定)
       - name: Download Codacy Analysis CLI
         run: |
-          wget https://github.com/codacy/codacy-analysis-cli/releases/latest/download/codacy-analysis-cli-linux
+          wget https://github.com/codacy/codacy-analysis-cli/releases/download/7.0.0/codacy-analysis-cli-linux
           chmod +x codacy-analysis-cli-linux
 
       # 4. Codacy Analysis CLIを実行
