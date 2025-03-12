@@ -1,0 +1,55 @@
+name: Java Codacy Analysis and Coverage
+
+on:
+  push:
+    branches:
+      # - main
+      - codacytest
+
+  pull_request:
+
+jobs:
+  codacy-analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. リポジトリをチェックアウト
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # 履歴全体を取得（カバレッジレポートのコミット識別に必要）
+
+      # 2. JDKのセットアップ
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      # 3. Mavenの依存関係をキャッシュ（高速化）
+      - name: Cache Maven repository
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven
+
+      # 4. Mavenでビルドとテスト実行
+      - name: Build and test with Maven
+        run: mvn clean verify
+
+      # 5. Codacy Coverage Reporterを使ってカバレッジレポートをアップロード
+      - name: Upload Coverage to Codacy
+        uses: codacy/codacy-coverage-reporter-action@v1
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: target/site/jacoco/jacoco.xml
+          # GitHubでの直前のコミット情報を使用
+          commit: ${{ github.sha }}
+
+      # 6. CodacyのCLIを使ってコード解析を実行（オプション）
+      - name: Codacy Analysis CLI
+        uses: codacy/codacy-analysis-cli-action@v1
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          commit: ${{ github.sha }}
