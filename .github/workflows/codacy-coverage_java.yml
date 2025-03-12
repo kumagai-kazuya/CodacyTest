@@ -5,7 +5,6 @@ on:
     branches:
       # - main
       - codacytest
-
   pull_request:
 
 jobs:
@@ -17,39 +16,36 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # 履歴全体を取得（カバレッジレポートのコミット識別に必要）
+          fetch-depth: 0  # 全履歴を取得する
 
       # 2. JDKのセットアップ
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
-          java-version: "17"
-          distribution: "temurin"
+          java-version:  17 
+          distribution:  temurin 
 
-      # 3. Mavenの依存関係をキャッシュ（高速化）
-      - name: Cache Maven repository
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-maven
+      # 3. Codacy Analysis CLIのダウンロード
+      - name: Download Codacy Analysis CLI
+        run: |
+          wget https://github.com/codacy/codacy-analysis-cli/releases/latest/download/codacy-analysis-cli-linux
+          chmod +x codacy-analysis-cli-linux
 
-      # 4. Mavenでビルドとテスト実行
+      # 4. Codacy Analysis CLIを実行
+      - name: Run Codacy Analysis CLI
+        env:
+          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+        run: |
+          ./codacy-analysis-cli-linux analyze --project-token $CODACY_PROJECT_TOKEN \
+            --commit-uuid ${{ github.sha }}
+
+      # 5. JaCoCoのカバレッジレポートを生成
       - name: Build and test with Maven
         run: mvn clean verify
 
-      # 5. Codacy Coverage Reporterを使ってカバレッジレポートをアップロード
-      - name: Upload Coverage to Codacy
+      # 6. カバレッジレポートをCodacyにアップロード
+      - name: Upload coverage to Codacy
         uses: codacy/codacy-coverage-reporter-action@v1
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
           coverage-reports: target/site/jacoco/jacoco.xml
-          # GitHubでの直前のコミット情報を使用
-          commit: ${{ github.sha }}
-
-      # 6. CodacyのCLIを使ってコード解析を実行（オプション）
-      - name: Codacy Analysis CLI
-        uses: codacy/codacy-analysis-cli-action@v1
-        with:
-          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
-          commit: ${{ github.sha }}
